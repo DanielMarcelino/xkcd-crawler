@@ -15,7 +15,6 @@ class Downloader():
     def __init__(self) -> None:
         self._create_directory()
         self.setlist_files_in_directory = {file_name for file_name in os.listdir(f'{self.DIRECTORY}/')}
-        self.counts = {'.png': 0, '.jpg': 0, '.gif': 0, 'other': 0, 'total': 0}
         
     ARCHIVE_PAGE_URL = 'https://xkcd.com/archive/'
     COMIC_BASE_URL = 'https://imgs.xkcd.com/comics/'
@@ -36,7 +35,8 @@ class Downloader():
         with ThreadPoolExecutor(max_workers=8) as executor:
             for key in data_info_comics.keys():
                 executor.submit(self._img_download, data_info_comics[key], key[1:-1])
-
+        # for key in data_info_comics.keys():
+        #     self._img_download(data_info_comics[key], key[1:-1])
 
     def _img_download(self, slug: str, img_id: str) -> None:
         response = self._request_img_file(slug, img_id)
@@ -50,41 +50,42 @@ class Downloader():
                 elif response.content.startswith(b'\xff'):
                     extension = 'jpg'
                 else:
-                    extension = 'NULL' #para teste
+                    extension = 'bmp' #para teste
 
-                if self._save_img_file_in_disk(f'{self._get_md5_from_file(response.content)}.{extension}', response.content):
-                    self._show_logger(f'[Info] Comic title: {slug} id:  {img_id} has been downloaded.')
+                file_name = f'{self._get_md5_from_file(response.content)}.{extension}'
+                # if file_name not in self.setlist_files_in_directory:
+                #     print(f"{img_id}!")
+                if file_name not in self.setlist_files_in_directory:
+                    self._save_img_file_in_disk(img_id + '.' + extension, response.content, img_id)
+                    # self._show_logger(f'[Info] Comic title: {slug} id:  {img_id} has been downloaded.')
                 else:
                     self._show_logger(f'[Info] Comic title: {slug} id:  {img_id} alredy exists.')
-                
         else:
             self._show_logger(f'[Error] {response.status_code} during the comic download  title: {slug} id:  {img_id}.')
     
     def _get_md5_from_file(self, file_content: bytes) -> str:
-        md5_from_file = hashlib.md5()
-        md5_from_file.update(file_content)
-        md5_from_file = str(md5_from_file.hexdigest())
-        return md5_from_file
-
-    def _save_img_file_in_disk(self, file_name: str, file_content: bytes) -> bool:
-        self.counts[f'{file_name[-4:]}'] += 1
-        self.counts['total'] += 1
-        print(self.counts)
         try:
-            if file_name not in self.setlist_files_in_directory:
-                with open(f'{self.DIRECTORY}/{file_name}', 'wb') as img_file:
-                    img_file.write(file_content)
-                return True 
-        except PermissionError:
-            return False
-            pass
+            md5_from_file = hashlib.md5()
+            md5_from_file.update(file_content)
+            return  md5_from_file.hexdigest()
+        except:
+            print('Errro md5')
+
+
+
+    def _save_img_file_in_disk(self, file_name: str, file_content: bytes, id) -> bool:
+        try:
+            with open(f'{self.DIRECTORY}/{file_name}', 'wb') as img_file:
+                img_file.write(file_content)
+
+        except:
+            print(f"Erro {file_name}")
 
     def _request_img_from_slug(self, comic_slug:str) -> requests.models.Response:
         extensions_list = ['.png', '.jpg']
         for extension in extensions_list:
             response = requests.get(self.COMIC_BASE_URL + comic_slug + extension, timeout=10)
             if response.status_code == 200:
-                self.arquive_counts[extension] += 1
                 return response
         return None
     
@@ -172,7 +173,22 @@ class Downloader():
 
 instance = Downloader()
 instance.comics_download()
+# print(instance._get_md5_from_file(b''))
+# with open(".txt", 'wb') as arq:
+#     arq.write(b'')
+
 
 """
+
+['02b4ef66056215d8a06e78baac04b4f8.png', '1036']
+['02b4ef66056215d8a06e78baac04b4f8.png', '1037']
+['47127cc6f7cfe5d16635fdb20d3ee871.png', '1349']
+['47127cc6f7cfe5d16635fdb20d3ee871.png', '1350']
+['3ea759b44fe02a4488347046cda388ea.png', '1480']
+['3ea759b44fe02a4488347046cda388ea.png', '60']
+['027331a8ecc6fa68757de0e1462bfad5.png', '1071']
+['027331a8ecc6fa68757de0e1462bfad5.png', '786']
 verificar arquivos com extenção .false
+1335!
+1190!
 """
