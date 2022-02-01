@@ -1,3 +1,4 @@
+from distutils import extension
 import hashlib
 import json
 import logging
@@ -30,7 +31,6 @@ class XkcdDownloader:
         if last_comic_index:
             for index in range(1, last_comic_index + 1):
                 self._download_image_file_for_comic(index)
-            pass
 
     def _get_last_index_from_api(self) -> int:
         api_response = self._make_request(
@@ -58,52 +58,72 @@ class XkcdDownloader:
                 except_log_message=('in request for comic id '
                                     f'image file: {comic_id}')
             )
-            if isinstance(response_for_image_file, requests.models.Response):
-                if response_for_image_file.status_code == 200:
-                    if (
-                        response_for_image_file.headers
-                        ['Content-Type'].startswith('image')
-                    ):
-                        md5 = self._get_md5_from_file(
-                            response_for_image_file.content)
-                        extension_file = comic_img_url[-4:]
-                        name_img_file = md5 + extension_file
-                        self._save_img_file_in_disk(
-                            name_img_file,
-                            response_for_image_file.content,
-                            comic_id
-                        )
-                    else:
-                        logging.info(
-                            f'The file for comic id: {comic_id} is not a image'
-                        )
-                        return
+            if self._verify_reponse(response_for_image_file):
+                response_headers = response_for_image_file.headers
+                if self._content_is_a_image(response_headers):
+                    extension = self._get_extension(response_headers)
+                    self._create_img_file_in_disk()
                 else:
-                    logging.warning(
-                        (f'Error {response_for_image_file.status_code} '
-                            f'in request for comic id: {comic_id}')
+                    logging.info(
+                        f'The file for comic id: {comic_id} is not a image'
                     )
+                    return
+            else:
+                logging.warning(
+                    (f'Error {response_for_image_file.status_code} '
+                        f'in request for comic id: {comic_id}')
+                )
 
-    def _get_comic_url_img_from_api(self, comic_id: int) -> str:
+    def _content_is_a_image(self, headers: dict) -> bool:
+        if (headers['Content-Type'].startswith('image')):
+            return True
+        else:
+            return False
+
+    def _get_extension(self, headers: dict) -> str:
+        return headers['Content-Type'][5:]
+
+    def _save_image_file_in_disk(self, img_file_content: bytes, extension: str):
+        md5 = self._get_md5_from_file(img_file_content)
+        name_img_file = md5 + extension
+        self._save_img_file_in_disk( 
+            name_img_file, img_file_content, comic_id
+        )
+
+    def _alredy_exist(self, file_name: str):
+        if not os.path.isfile(file_name):
+            
+
+
+    def _get_comic_url(self, comic_id: int) -> str:
         api_response = self._make_request(
             url=f'{self.URL_API[0]}{comic_id}{self.URL_API[1]}',
             except_log_message=f'in request comic id: {comic_id} from API'
         )
-        if isinstance(api_response, requests.models.Response):
-            if api_response.status_code == 200:
-                json_from_api = json.loads(api_response.content)
-                comic_img_url = json_from_api['img']
-                comic_title = json_from_api['title']
-                logging.info(
-                    (f'URL from image comic id: {comic_id}, '
-                        f'title: {comic_title}, has been obtained from API')
-                )
-                return comic_img_url
-            else:
-                logging.warning(
-                    (f'Error {api_response.status_code} '
-                        f'in API request from comic id: {comic_id}')
-                )
+        if self._verify_reponse(api_response):
+            self._get_img_url_from_api_json(api_response.text, comic_id)
+        else:
+            logging.warning(
+                (f'Error {api_response.status_code} '
+                    f'in API request from comic id: {comic_id}')
+            )
+
+    def _get_img_url_from_api_json(self, json: str, comic_id: int):
+        json_from_api = json.loads(json)
+        comic_img_url = json_from_api['img']
+        comic_title = json_from_api['title']
+        logging.info(
+            (f'URL from image comic id: {comic_id}, '
+                f'title: {comic_title}, has been obtained from API')
+        )
+        return comic_img_url
+        
+    def _verify_reponse(self, response):
+        if isinstance(response, requests.models.Response and
+            response.status_code == 200):
+                return True
+        else:
+           return False
 
     def _make_request(
         self, url: str, except_log_message: str
@@ -118,7 +138,7 @@ class XkcdDownloader:
             logging.error(f'Some error ocurred {except_log_message}')
 
 
-    def _save_img_file_in_disk(
+    def _create_file_in_disk(
         self, file_name: str, file_content: bytes, comic_id: int
     ) -> None:
         if not os.path.isfile(f'{self.DIRECTORY}/{file_name}'):
