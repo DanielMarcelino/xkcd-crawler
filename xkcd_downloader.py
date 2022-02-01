@@ -117,18 +117,6 @@ class XkcdDownloader:
         except Exception:
             logging.error(f'Some error ocurred {except_log_message}')
 
-    def _create_directory(self) -> None:
-        try:
-            os.mkdir(self.DIRECTORY)
-            logging.info(f'The directory:"{self.DIRECTORY}/" has been created')
-        except FileExistsError:
-            logging.info(f'The directory:"{self.DIRECTORY}/" alredy exists')
-        except PermissionError as error:
-            logging.error(
-                (f'{type(error).__name__} '
-                    f'when create directory "{self.DIRECTORY}/"')
-            )
-            exit()
 
     def _save_img_file_in_disk(
         self, file_name: str, file_content: bytes, comic_id: int
@@ -157,3 +145,16 @@ class XkcdDownloader:
         md5_from_file = hashlib.md5()
         md5_from_file.update(file_content)
         return md5_from_file.hexdigest()
+
+    def _create_directory(self) -> None:
+        try:
+            os.mkdir(self.DIRECTORY)
+            logging.info(f'The directory:"{self.DIRECTORY}/" has been created')
+        except FileExistsError:
+            logging.info(f'The directory:"{self.DIRECTORY}/" alredy exists')
+        except PermissionError as error:
+            logging.error(
+                (f'{type(error).__name__} '
+                    f'when create directory "{self.DIRECTORY}/"')
+            )
+            exit()
