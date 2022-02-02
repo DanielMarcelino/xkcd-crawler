@@ -1,3 +1,4 @@
+from ast import Import
 import hashlib
 import json
 import logging
@@ -160,10 +161,10 @@ class XkcdDownloader:
     def _create_directory(self) -> None:
         try:
             os.mkdir(self.DIRECTORY)
-            logging.info(f'The directory:"{self.DIRECTORY}/" has been created')
+            logging.info(f'The directory: "{self.DIRECTORY}/" has been created')
         except FileExistsError:
-            logging.info(f'The directory:"{self.DIRECTORY}/" alredy exists')
-        except PermissionError as error:
-            logging.error(f'{type(error).__name__} '
+            logging.info(f'The directory: "{self.DIRECTORY}/" alredy exists')
+        except PermissionError:
+            logging.error(f'PermissionError '
                           f'when create directory "{self.DIRECTORY}/"')
             exit()
