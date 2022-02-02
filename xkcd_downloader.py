@@ -8,7 +8,7 @@ from requests.exceptions import HTTPError, Timeout, ConnectionError, InvalidURL
 
 
 class XkcdDownloader:
-    URL_API = ['https://xkcd.com/', '/info.0.json']
+    API_URL = ['https://xkcd.com/', '/info.0.json']
     DIRECTORY = 'comics'
     TIMEOUT = 10
     HEADERS = {}
@@ -33,8 +33,8 @@ class XkcdDownloader:
 
     def _get_last_index_from_api(self) -> int:
         api_response = self._make_request(
-            url=''.join(self.URL_API),
-            except_log_message='in request last comic index from API'
+            url=''.join(self.API_URL),
+            except_log_message='in request last comic index from xkcd API'
             )
         if self._verify_reponse(api_response):
             json_from_api = json.loads(api_response.content)
@@ -45,7 +45,7 @@ class XkcdDownloader:
         else:
             logging.warning(
                 (f'Error {api_response.status_code}'
-                    'when getting last comic index from API')
+                    'when getting last comic index from xkcd API')
                 )
 
     def _verify_reponse(self, response):
@@ -70,7 +70,7 @@ class XkcdDownloader:
                         response_for_image_file.content)
                     file_extension = response_headers['Content-Type'][6:]
                     img_name_file = f'{md5}.{file_extension}'
-                    self._save_comic_img_file_in_disk(
+                    self._save_comic_img_file_in_local_storage(
                         img_name_file, response_for_image_file.content,
                         comic_id
                         )
@@ -84,19 +84,19 @@ class XkcdDownloader:
 
     def _get_img_comic_url(self, comic_id: int) -> str:
         api_response = self._make_request(
-            url=f'{self.URL_API[0]}{comic_id}{self.URL_API[1]}',
-            except_log_message=f'in request comic id: {comic_id} from API'
+            url=f'{self.API_URL[0]}{comic_id}{self.API_URL[1]}',
+            except_log_message=f'in request comic id: {comic_id} from xkcd API'
         )
         if self._verify_reponse(api_response):
             json_from_api = json.loads(api_response.text)
             comic_img_url = json_from_api['img']
             comic_title = json_from_api['title']
             logging.info(f'URL from image comic id: {comic_id}, '
-                         f'title: {comic_title}, has been obtained from API')
+                         f'title: {comic_title}, has been obtained from xkcd API')
             return comic_img_url
         else:
             logging.warning(f'Error {api_response.status_code} '
-                            f'in API request from comic id: {comic_id}')
+                            f'in xkcd API request from comic id: {comic_id}')
 
     def _make_request(self, url: str,
                       except_log_message: str) -> requests.models.Response:
@@ -115,11 +115,11 @@ class XkcdDownloader:
         else:
             return False
 
-    def _save_comic_img_file_in_disk(self, name_img_file: str,
-                                     img_file_content: bytes,
-                                     comic_id) -> None:
+    def _save_comic_img_file_in_local_storage(self, name_img_file: str,
+                                              img_file_content: bytes,
+                                              comic_id: int) -> None:
         if not self._file_alredy_exist(f'{self.DIRECTORY}/{name_img_file}'):
-            self._create_file_in_disk(
+            self._create_file_in_local_storage(
                 file_name=name_img_file,
                 file_content=img_file_content,
                 info_log_msg=(f'Comic id: {comic_id} '
@@ -144,9 +144,10 @@ class XkcdDownloader:
         else:
             return False
 
-    def _create_file_in_disk(self, file_name: str, file_content: bytes,
-                             info_log_msg: str = '',
-                             error_log_msg: str = '') -> None:
+    def _create_file_in_local_storage(self, file_name: str,
+                                      file_content: bytes,
+                                      info_log_msg: str = '',
+                                      error_log_msg: str = '') -> None:
         try:
             with open(f'{self.DIRECTORY}/{file_name}', 'wb') as img_file:
                 img_file.write(file_content)
