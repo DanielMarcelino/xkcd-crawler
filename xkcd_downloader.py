@@ -152,19 +152,21 @@ class XkcdDownloader:
         try:
             with open(f'{self.DIRECTORY}/{file_name}', 'wb') as img_file:
                 img_file.write(file_content)
-            self._count_of_comic_downloads += 1
-            logging.info(info_log_msg)
         except (IsADirectoryError, PermissionError,
                 FileNotFoundError) as error:
             logging.error(f'{type(error).__name__} {error_log_msg}')
+        else:
+            self._count_of_comic_downloads += 1
+            logging.info(info_log_msg)
 
     def _create_directory(self) -> None:
         try:
             os.mkdir(self.DIRECTORY)
-            logging.info(f'The directory: "{self.DIRECTORY}/" has been created')
         except FileExistsError:
             logging.info(f'The directory: "{self.DIRECTORY}/" alredy exists')
         except PermissionError:
             logging.error(f'PermissionError '
                           f'when create directory "{self.DIRECTORY}/"')
             exit()
+        else:
+            logging.info(f'The directory: "{self.DIRECTORY}/" has been created')
