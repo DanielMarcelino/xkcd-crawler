@@ -1,7 +1,5 @@
-from ast import Raise
-from typing import Type
-import unittest
 import os
+import unittest
 
 import requests
 
@@ -34,7 +32,7 @@ class TesteCreateDirectoryMethod(unittest.TestCase):
                                                  'has been created')
 
     @patch('os.mkdir')
-    def test_displays_especific_log_msg_when_directory_alredy_exists(self,mock_mkdir):
+    def test_displays_especific_log_msg_when_directory_alredy_exists(self, mock_mkdir):
         mock_mkdir.side_effect = FileExistsError
         self.instance._create_directory()
         with self.assertLogs() as captured_log:
@@ -43,19 +41,20 @@ class TesteCreateDirectoryMethod(unittest.TestCase):
                                                  'alredy exists')
 
     @patch('os.mkdir')
-    def test_displays_especific_log_msg_and_trigger_sytem_exit_when_permission_error_occurs(self, mock_mkdir):
-        mock_mkdir.side_effect = PermissionError
-        with self.assertLogs() as captured_log:
-            with self.assertRaises(SystemExit):
-                self.instance._create_directory()
-        self.assertEqual(captured_log.output[0], f'ERROR:root:PermissionError when create directory '
-                                                 f'"{self.instance.DIRECTORY}/"')
+    def test_displays_especific_log_msg_and_trigger_sytem_exit_when_exceptions_are_raised(self, mock_mkdir):
+        exceptions = [OSError, PermissionError, FileNotFoundError]
+        for expt in exceptions:
+            mock_mkdir.side_effect = expt
+            with self.assertLogs() as captured_log:
+                with self.assertRaises(SystemExit):
+                    self.instance._create_directory()
+            self.assertEqual(captured_log.output[0], f'ERROR:root:{expt.__name__} when create directory '
+                                                     f'"{self.instance.DIRECTORY}/"')
 
 
 class TestCreateFileInLocalStorageMethod(unittest.TestCase):
     def setUp(self):
         self.instance = XkcdDownloader()
-        self.instance.DIRECTORY = 'directory_test'
         self.file_name = 'teste_file.bin'
         self.file_content = b'test binary content'
         self.info_log_msg = 'Lorem ipsum'
@@ -84,28 +83,14 @@ class TestCreateFileInLocalStorageMethod(unittest.TestCase):
         self.assertEqual(captured_log.output[0], f'INFO:root:{self.info_log_msg}')
     
     @patch('builtins.open', new_callable=mock_open())
-    def test_display_especific_log_msg_when_is_adirectory_error_occurs(self, mock_open):
-        mock_open.side_effect = IsADirectoryError
-        with self.assertLogs() as captured_log:
-            self.instance._create_file_in_local_storage(self.file_name, self.file_content,
-                                                    self.info_log_msg, self.error_log_msg)
-        self.assertEqual(captured_log.output[0], f'ERROR:root:IsADirectoryError {self.error_log_msg}')
-    
-    @patch('builtins.open', new_callable=mock_open())
-    def test_display_especific_log_msg_when_permission_error_occurs(self, mock_open):
-        mock_open.side_effect = PermissionError
-        with self.assertLogs() as captured_log:
-            self.instance._create_file_in_local_storage(self.file_name, self.file_content,
-                                                    self.info_log_msg, self.error_log_msg)
-        self.assertEqual(captured_log.output[0], f'ERROR:root:PermissionError {self.error_log_msg}')
-
-    @patch('builtins.open', new_callable=mock_open())
-    def test_display_especific_log_msg_when_file_not_found_error_occurs(self, mock_open):
-        mock_open.side_effect = FileNotFoundError
-        with self.assertLogs() as captured_log:
-            self.instance._create_file_in_local_storage(self.file_name, self.file_content,
-                                                    self.info_log_msg, self.error_log_msg)
-        self.assertEqual(captured_log.output[0], f'ERROR:root:FileNotFoundError {self.error_log_msg}')
+    def test_display_especific_log_msg_when_exceptions_are_raised(self, mock_open):
+        known_execptions = [IsADirectoryError, PermissionError, FileNotFoundError]
+        for exeption in known_execptions:
+            mock_open.side_effect = exeption
+            with self.assertLogs() as captured_log:
+                self.instance._create_file_in_local_storage(self.file_name, self.file_content,
+                                                        self.info_log_msg, self.error_log_msg)
+            self.assertEqual(captured_log.output[0], f'ERROR:root:{exeption.__name__} {self.error_log_msg}')
 
 
 class TestMakeRequestMethod(unittest.TestCase):
@@ -126,7 +111,7 @@ class TestMakeRequestMethod(unittest.TestCase):
         self.assertIsInstance(response, requests.models.Response)
     
     @patch('requests.get', return_value = requests.models.Response())
-    def test_display_especific_log_msg_when_known_exceptions_are_raised(self, mock_requests):
+    def test_display_especific_log_msg_when_exceptions_are_raised(self, mock_requests):
         known_exeptions = [HTTPError, Timeout, ConnectionError, InvalidURL]
         for exception in known_exeptions:
             mock_requests.side_effect = exception
@@ -135,23 +120,43 @@ class TestMakeRequestMethod(unittest.TestCase):
             self.assertEqual(captured_log.output[0], f'ERROR:root:{exception.__name__} '
                                                      f'{self.except_log_msg}')
 
-    @patch('requests.get', return_value = requests.models.Response())
-    def test_display_especific_log_msg_when_unknown_exceptions_are_raised(self, mock_requests):
-        mock_requests.side_effect = Exception
-        with self.assertLogs() as captured_log:
-            self.instance._make_request(self.test_url, self.except_log_msg)
-        self.assertEqual(captured_log.output[0], f'ERROR:root:Some error ocurred {self.except_log_msg}')
-
 
 class TestGetMd5FromFile(unittest.TestCase):
     def setUp(self):
         self.instance = XkcdDownloader()
-        self.content_to_md5 = [[b'phrase to test MD5 denerator method', '244f95b1763d25201f80ef08599b53c2'],
+        self.content_to_md5 = [[b'phrase to test MD5 generator method', 'ebdda56737bb8d7e5c1e056a48c4aacc'],
                               [b'xkcd comics', '733050eabfd65f2120a5ec201273a369']]
     
     def test_return_md5_from_binary_content(self):
         for content in self.content_to_md5:
             self.assertEqual(self.instance._get_md5_from_file(content[0]),content[1])
+
+
+class TestSaveComicImgFileInLocalStorage(unittest.TestCase):
+    def setUp(self):
+        self.instance = XkcdDownloader()
+        self.name_img_file = 'img_test.png'
+        self.img_file_content = b'content img file'
+        self.comic_id = '136'
+        
+    
+    @patch('xkcd_downloader.XkcdDownloader._create_directory')
+    @patch('os.path.isfile', return_value = True)
+    def teste_call_isfile_with_corect_argument(self, mock_isfile, mock_create_directory):
+        self.instance._save_comic_img_file_in_local_storage(self.name_img_file, self.img_file_content,
+                                                            self.comic_id)
+        mock_isfile.assert_called_once_with(f'{self.instance.DIRECTORY}/{self.name_img_file}')
+
+    @patch('xkcd_downloader.XkcdDownloader._create_file_in_local_storage')
+    @patch('os.path.isfile', return_value = False)
+    def teste_call_isfile_with_corect_argument(self, mock_isfile, mock_create_directory):
+        info_log_msg = f'Comic id: {self.comic_id} has been downloaded with name: {self.name_img_file}'
+        error_log_msg=(f'when save file image for comic id: {self.comic_id} with name: {self.name_img_file}')
+        self.instance._save_comic_img_file_in_local_storage(self.name_img_file, self.img_file_content,
+                                                            self.comic_id)
+        mock_create_directory.assert_called_once_with(file_name=self.name_img_file,file_content=self.img_file_content,
+                                                      info_log_msg=info_log_msg, error_log_msg=error_log_msg)
+
 
 if __name__ == '__main__':
     unittest.main()
