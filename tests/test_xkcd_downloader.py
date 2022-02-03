@@ -61,7 +61,7 @@ class TestCreateFileInLocalStorageMethod(unittest.TestCase):
         self.error_log_msg = 'Dolor sit amet'
 
     @patch('builtins.open', new_callable=mock_open())
-    def test_call_open_and_write_with_corect_arguments(self, mock_open):
+    def test_call_open_and_write_with_correct_arguments(self, mock_open):
         self.instance._create_file_in_local_storage(self.file_name, self.file_content,
                                                     self.info_log_msg, self.error_log_msg)
         mock_open.assert_called_once_with(f'{self.instance.DIRECTORY}/teste_file.bin' , 'wb')
@@ -100,13 +100,13 @@ class TestMakeRequestMethod(unittest.TestCase):
         self.except_log_msg = 'Lorem ipsum' 
 
     @patch('requests.get')
-    def test_call_requests_get_with_corect_arguments(self, mock_requests):
+    def test_call_requests_get_with_correct_arguments(self, mock_requests):
         self.instance._make_request(self.test_url, self.except_log_msg)
         mock_requests.assert_called_once_with(self.test_url, headers=self.instance.HEADERS,
                                               timeout=self.instance.TIMEOUT)
 
     @patch('requests.get', return_value = requests.models.Response())
-    def test_return_requests_instance_when_http_response_is_sucesful(self, mock_requests):
+    def test_returns_requests_instance_when_http_response_is_sucesful(self, mock_requests):
         response = self.instance._make_request(self.test_url, self.except_log_msg)
         self.assertIsInstance(response, requests.models.Response)
     
@@ -127,7 +127,7 @@ class TestGetMd5FromFile(unittest.TestCase):
         self.content_to_md5 = [[b'phrase to test MD5 generator method', 'ebdda56737bb8d7e5c1e056a48c4aacc'],
                               [b'xkcd comics', '733050eabfd65f2120a5ec201273a369']]
     
-    def test_return_md5_from_binary_content(self):
+    def test_returns_md5_from_binary_content(self):
         for content in self.content_to_md5:
             self.assertEqual(self.instance._get_md5_from_file(content[0]),content[1])
 
@@ -137,26 +137,76 @@ class TestSaveComicImgFileInLocalStorage(unittest.TestCase):
         self.instance = XkcdDownloader()
         self.name_img_file = 'img_test.png'
         self.img_file_content = b'content img file'
-        self.comic_id = '136'
+        self.comic_id = 136
         
     
     @patch('xkcd_downloader.XkcdDownloader._create_directory')
     @patch('os.path.isfile', return_value = True)
-    def teste_call_isfile_with_corect_argument(self, mock_isfile, mock_create_directory):
+    def teste_call_isfile_with_correct_argument(self, mock_isfile, mock_create_directory):
         self.instance._save_comic_img_file_in_local_storage(self.name_img_file, self.img_file_content,
                                                             self.comic_id)
         mock_isfile.assert_called_once_with(f'{self.instance.DIRECTORY}/{self.name_img_file}')
 
     @patch('xkcd_downloader.XkcdDownloader._create_file_in_local_storage')
     @patch('os.path.isfile', return_value = False)
-    def teste_call_isfile_with_corect_argument(self, mock_isfile, mock_create_directory):
+    def teste_call_isfile_with_correct_argument(self, mock_isfile, mock_create_directory):
         info_log_msg = f'Comic id: {self.comic_id} has been downloaded with name: {self.name_img_file}'
         error_log_msg=(f'when save file image for comic id: {self.comic_id} with name: {self.name_img_file}')
         self.instance._save_comic_img_file_in_local_storage(self.name_img_file, self.img_file_content,
                                                             self.comic_id)
-        mock_create_directory.assert_called_once_with(file_name=self.name_img_file,file_content=self.img_file_content,
+        mock_create_directory.assert_called_once_with(file_name=self.name_img_file,
+                                                      file_content=self.img_file_content,
                                                       info_log_msg=info_log_msg, error_log_msg=error_log_msg)
 
+    @patch('xkcd_downloader.XkcdDownloader._create_file_in_local_storage')
+    @patch('os.path.isfile', return_value=True)
+    def test_display_log_message_when_file_returns_true(self, mock_isfile, mock_create_file_in_local):
+        with self.assertLogs() as captured_log:
+            self.instance._save_comic_img_file_in_local_storage(self.name_img_file, self.img_file_content,
+                                                                self.comic_id)
+        self.assertEqual(captured_log.output[0], f'INFO:root:File of Comic id: {self.comic_id} alredy exits '
+                                                 f'with name: {self.name_img_file}')
+
+class TestContentIsAImage(unittest.TestCase):
+    def setUp(self):
+        self.instance = XkcdDownloader()
+        self.headers_html = {"Content-Type" : "text/" }
+        self.headers_image = {"Content-Type" : "image/" }
+
+    def test_returns_false_when_content_type_is_not_image(self):
+        self.assertFalse(self.instance._content_is_a_image(self.headers_html))
+
+    def test_returns_true_when_content_type_is_not_image(self):
+        self.assertTrue(self.instance._content_is_a_image(self.headers_image))
+
+class DubleMakeRequest:
+    def __init__(status_code: int, text: str):
+        self.status_code = status_code
+        self.text = text
+
+class TestGetImageComicUrl(unittest.TestCase):
+    def setUp(self):
+        self.instance = XkcdDownloader()
+        self.comic_id = 123
+        self.url = f'{self.instance.API_URL[0]}{self.comic_id}{self.instance.API_URL[1]}'
+        self.log_message = f'in request comic id: {self.comic_id} from xkcd API'
+
+    content = """
+        {
+            'img': 'https://imgs.xkcd.com/comics/centrifugal_force.png',
+            'title': 'Centrifugal Force'
+        }
+    """
+
+    @patch('xkcd_downloader.XkcdDownloader._make_request', return_value = None)
+    def test_call_make_request_with_correct_arguments(self, mock_make_request):
+        self.instance._get_image_comic_url(self.comic_id)
+        mock_make_request.assert_called_once_with(url=self.url, except_log_message=self.log_message)
+
+    @patch('xkcd_downloader.XkcdDownloader._make_request', return_value = DubleMakeRequest(200, content))
+    def test_returns_url_when_request_http_sucessful(self, mock_make_request):
+        url_returned = self.instance._get_image_comic_url(self.comic_id)
+        self.assertEqual(url_returned, 'https://imgs.xkcd.com/comics/centrifugal_force.png')
 
 if __name__ == '__main__':
     unittest.main()
