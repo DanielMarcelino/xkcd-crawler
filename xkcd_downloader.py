@@ -89,16 +89,13 @@ class XkcdDownloader:
             logging.warning(f'Error {api_response.status_code} in xkcd API request from '
                             'comic id: {comic_id}')
 
-    def _make_request(self, url: str,
-                      except_log_message: str) -> requests.models.Response:
+    def _make_request(self, url: str, except_log_message: str) -> requests.models.Response:
         try:
             return requests.get(
                 url, headers=self.HEADERS, timeout=self.TIMEOUT
             )
-        except (HTTPError, Timeout, ConnectionError, InvalidURL) as error:
+        except Exception as error:
             logging.error(f'{type(error).__name__} {except_log_message}')
-        except Exception:
-            logging.error(f'Some error ocurred {except_log_message}')
 
     def _content_is_a_image(self, headers: dict) -> bool:
         if (headers['Content-Type'].startswith('image')):
@@ -113,7 +110,7 @@ class XkcdDownloader:
                 file_name=name_img_file,
                 file_content=img_file_content,
                 info_log_msg=(f'Comic id: {comic_id} has been downloaded with name: {name_img_file}'),
-                error_log_msg=('when save file image for comic id: {comic_id} with name: {name_img_file}'))
+                error_log_msg=(f'when save file image for comic id: {comic_id} with name: {name_img_file}'))
         else:
             logging.info(f'File of Comic id: {comic_id} alredy exits with name: {name_img_file}')
 
@@ -127,8 +124,7 @@ class XkcdDownloader:
         try:
             with open(f'{self.DIRECTORY}/{file_name}', 'wb') as img_file:
                 img_file.write(file_content)
-        except (IsADirectoryError, PermissionError,
-                FileNotFoundError) as error:
+        except Exception as error:
             logging.error(f'{type(error).__name__} {error_log_msg}')
         else:
             self._count_of_comic_downloads += 1
@@ -139,8 +135,8 @@ class XkcdDownloader:
             os.mkdir(self.DIRECTORY)
         except FileExistsError:
             logging.info(f'The directory: "{self.DIRECTORY}/" alredy exists')
-        except PermissionError:
-            logging.error(f'PermissionError when create directory "{self.DIRECTORY}/"')
+        except Exception as error:
+            logging.error(f'{type(error).__name__} when create directory "{self.DIRECTORY}/"')
             exit()
         else:
             logging.info(f'The directory: "{self.DIRECTORY}/" has been created')
