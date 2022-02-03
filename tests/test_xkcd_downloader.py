@@ -143,6 +143,15 @@ class TestMakeRequestMethod(unittest.TestCase):
         self.assertEqual(captured_log.output[0], f'ERROR:root:Some error ocurred {self.except_log_msg}')
 
 
+class TestGetMd5FromFile(unittest.TestCase):
+    def setUp(self):
+        self.instance = XkcdDownloader()
+        self.content_to_md5 = [[b'phrase to test MD5 denerator method', '244f95b1763d25201f80ef08599b53c2'],
+                              [b'xkcd comics', '733050eabfd65f2120a5ec201273a369']]
+    
+    def test_return_md5_from_binary_content(self):
+        for content in self.content_to_md5:
+            self.assertEqual(self.instance._get_md5_from_file(content[0]),content[1])
 
 if __name__ == '__main__':
     unittest.main()
