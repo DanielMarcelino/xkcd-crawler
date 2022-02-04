@@ -1,4 +1,4 @@
-from xkcd_downloader import XkcdDownloader
+from src.xkcd_downloader import XkcdDownloader
 
 
 def main():
