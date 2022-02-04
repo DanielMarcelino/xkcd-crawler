@@ -1,5 +1,4 @@
 import hashlib
-import json
 import logging
 import os
 
@@ -14,9 +13,7 @@ class XkcdDownloader:
 
     def __init__(self) -> None:
         logging.basicConfig(
-            format='[%(asctime)s][%(levelname)s] %(message)s',
-            level=logging.INFO
-            )
+            format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)
         self._create_directory()
         self._count_of_comic_downloads = 0
 
@@ -34,22 +31,22 @@ class XkcdDownloader:
         api_response = self._make_request(
             url=''.join(self.API_URL), except_log_message='in request last comic index from xkcd API')
 
-        if isinstance(api_response, requests.models.Response):
+        if api_response is not None:
             if api_response.status_code == 200:
-                json_from_api = json.loads(api_response.content)
-                last_comic_index = json_from_api['num']
+                last_comic_index = api_response.json['num']
                 logging.info(f'Last comic index (comic id): {last_comic_index}')
                 return last_comic_index
             else:
                 logging.warning(f'Error {api_response.status_code} when getting last comic index '
                                 'from xkcd API')
+                exit()
 
     def _download_image_file_for_comic(self, comic_id: int) -> None:
         comic_img_url = self._get_image_comic_url(comic_id)
         if comic_img_url:
             response_for_image_file = self._make_request(
                 url=comic_img_url,
-                except_log_message=('in request for comic id image file: {comic_id}')
+                except_log_message=(f'in request for comic id image file: {comic_id}')
                 )
             if response_for_image_file is not None:
                 if response_for_image_file.status_code == 200:
@@ -59,16 +56,14 @@ class XkcdDownloader:
                             response_for_image_file.content)
                         file_extension = response_headers['Content-Type'][6:]
                         img_name_file = f'{md5}.{file_extension}'
-                        self._save_comic_img_file_in_local_storage(
-                            img_name_file, response_for_image_file.content,
-                            comic_id
-                            )
+                        self._save_comic_img_file_in_local_storage(img_name_file,
+                                                                   response_for_image_file.content,
+                                                                   comic_id)
                     else:
                         logging.info(f'The file for comic id: {comic_id} is not a image')
-                        return
                 else:
                     logging.warning(f'Error {response_for_image_file.status_code} in request for '
-                                    'comic id: {comic_id}')
+                                    f'comic id: {comic_id}')
 
     def _get_image_comic_url(self, comic_id: int) -> str:
         api_response = self._make_request(url=f'{self.API_URL[0]}{comic_id}{self.API_URL[1]}',
@@ -76,15 +71,13 @@ class XkcdDownloader:
                                           'from xkcd API')
         if api_response is not None:
             if api_response.status_code == 200:
-                json_from_api = json.loads(api_response.text)
-                comic_img_url = json_from_api['img']
-                comic_title = json_from_api['title']
+                comic_title = api_response.json['title']
                 logging.info(f'URL from image comic id: {comic_id}, title: {comic_title}, has been obtained '
                              'from xkcd API')
-                return comic_img_url
+                return api_response.json['img']
             else:
                 logging.warning(f'Error {api_response.status_code} in xkcd API request from '
-                                'comic id: {comic_id}')
+                                f'comic id: {comic_id}')
 
     def _make_request(self, url: str, except_log_message: str) -> requests.models.Response:
         try:
