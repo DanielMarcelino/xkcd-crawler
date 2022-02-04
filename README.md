@@ -1,4 +1,4 @@
-# **DESAFIO** <img src="https://xkcd.com/s/0b7742.png" style="width:100x ; height:30px" />
+# **DESAFIO** <img src="https://xkcd.com/s/0b7742.png" style="height:30px" alt='xkcd' />
 
 Repositório para apresentar a solução da etapa 1 (metodologia síncrona) do desafio proposto por Justiça Fácil.
 
