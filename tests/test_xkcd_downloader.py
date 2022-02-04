@@ -15,7 +15,10 @@ class DubleRequests:
         self.text = text
         self.headers = headers
         self.content = content
-        self.json = json
+        self._json = json
+
+    def json(self):
+        return self._json
 
 class TesteCreateDirectoryMethod(unittest.TestCase):
     def setUp(self):
