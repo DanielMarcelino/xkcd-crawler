@@ -33,7 +33,7 @@ class XkcdDownloader:
 
         if api_response is not None:
             if api_response.status_code == 200:
-                last_comic_index = api_response.json['num']
+                last_comic_index = api_response.json()['num']
                 logging.info(f'Last comic index (comic id): {last_comic_index}')
                 return last_comic_index
             else:
@@ -71,10 +71,10 @@ class XkcdDownloader:
                                           'from xkcd API')
         if api_response is not None:
             if api_response.status_code == 200:
-                comic_title = api_response.json['title']
+                comic_title = api_response.json()['title']
                 logging.info(f'URL from image comic id: {comic_id}, title: {comic_title}, has been obtained '
                              'from xkcd API')
-                return api_response.json['img']
+                return api_response.json()['img']
             else:
                 logging.warning(f'Error {api_response.status_code} in xkcd API request from '
                                 f'comic id: {comic_id}')
